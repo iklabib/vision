@@ -5,9 +5,20 @@ import db
 from stream import alert_stream
 from parse import parse_event_notification, EventNotificationAlert
 
-url = "http://10.19.120.219/ISAPI/Event/notification/alertStream"
+##################################
+# Hook Alarm CCTV Hikvision      #
+# Sekaligus Stream Request Dahua #
+##################################
+
 username = "admin"
 password = "@dmincctv1"
+
+##################################
+# Daftarkan ini di Alarm Hikvision
+# 10.19.101.118/alarm
+##################################
+host = '0.0.0.0' # biarin, jangan diganti!
+port = 5_000 # boleh diganti
 
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import PlainTextResponse
@@ -27,6 +38,10 @@ async def alarm(request: Request):
     return PlainTextResponse('OK', status_code=200)
 
 if __name__ == "__main__":
-    p = multiprocessing.Process(target=dahua.invoke)
-    p.start()
-    uvicorn.run(app, host='0.0.0.0', port=5000, reload=False)
+    # disini jalanin request  ke kamera Dahua
+    dahua_ips = [ip for ip, brand in db.get_ips() if brand == "DAHUA"]
+    with multiprocessing.Pool() as pool:
+        results = [pool.apply_async(dahua.invoke, (ip,)) for ip in dahua_ips]
+    
+    # kalau ini server hook Hikvision
+    uvicorn.run(app, host=host, port=port, reload=False)

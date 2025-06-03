@@ -22,8 +22,9 @@ def parse_event_body(body):
             event[key] = value
     return event
 
-def invoke():
+def invoke(ip):
     auth = HTTPDigestAuth(username, password)
+    url = f"http://{ip}/cgi-bin/eventManager.cgi?action=attach&codes=[All]"
     with requests.get(url, auth=auth, stream=True) as response:
             content_type = response.headers.get('Content-Type', '')
             boundary = None
@@ -42,18 +43,16 @@ def invoke():
                     continue
                 buffer += chunk.decode(errors="ignore")
                 while boundary in buffer:
-                    part, buffer = buffer.split(boundary, 1)
-                    if part.strip():
-                        if "\r\n\r\n" in part:
-                            headers_part, body = part.split("\r\n\r\n", 1)
+                    try:
+                        part, buffer = buffer.split(boundary, 1)
+                        if part.strip() and "\r\n\r\n" in part:
+                            _, body = part.split("\r\n\r\n", 1)
                             body = body.strip()
                             parsed_event = parse_event_body(body)
 
-                            # Insert based on Code
-                            code = parsed_event.get('Code')
-                            if code == 'VideoMotionInfo':
-                                db.insert_video_motion_info(parsed_event)
-                            elif code == 'VideoMotion':
-                                db.insert_video_motion(parsed_event)
-                            elif code == 'NewFile':
-                                db.insert_new_file_event(parsed_event)
+                            code = parsed_event.get('Code', None)
+                            if code == 'NewFile':
+                                db.insert_dahua(parsed_event)
+                            db.insert_raw(parsed_event)
+                    except Exception:
+                        continue
