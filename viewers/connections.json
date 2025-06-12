@@ -1,0 +1,9 @@
+{
+    "cctv": {
+        "host": "10.19.101.42",
+        "port": 5000,
+        "username": "dbcctv",
+        "password": "B3basM3ngumpulkanD4taCctv!!!",
+        "database": "DB_CCTV_SYS"
+    }
+}
